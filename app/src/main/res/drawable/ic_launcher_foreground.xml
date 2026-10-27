@@ -1,0 +1,28 @@
+<?xml version="1.0" encoding="utf-8"?>
+<vector xmlns:android="http://schemas.android.com/apk/res/android"
+    android:width="108dp"
+    android:height="108dp"
+    android:viewportWidth="108"
+    android:viewportHeight="108">
+
+    <!-- Shield Base -->
+    <path
+        android:fillColor="#0B1F33"
+        android:pathData="M54,18 L84,30 C84,60 70,82 54,90 C38,82 24,60 24,30 Z" />
+
+    <!-- Inner Border Ring -->
+    <path
+        android:strokeColor="#1769AA"
+        android:strokeWidth="2.5"
+        android:pathData="M54,23 L79,33 C79,58 67,77 54,84 C41,77 29,58 29,33 Z" />
+
+    <!-- Emergency Cross -->
+    <path
+        android:fillColor="#D32F2F"
+        android:pathData="M50,38 h8 v12 h12 v8 h-12 v12 h-8 v-12 h-12 v-8 h12 Z" />
+
+    <!-- Center Gold Star Accent -->
+    <path
+        android:fillColor="#F59E0B"
+        android:pathData="M54,50 L56.5,55 L62,55.5 L57.8,59 L59.2,64.5 L54,61.5 L48.8,64.5 L50.2,59 L46,55.5 L51.5,55 Z" />
+</vector>

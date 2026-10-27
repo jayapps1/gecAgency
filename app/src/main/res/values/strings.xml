@@ -1,0 +1,16 @@
+<resources>
+    <string name="app_name">Ghana Emergency Connect Agency</string>
+    <string name="app_title">Ghana Emergency Connect</string>
+    <string name="app_subtitle">Agency Operations</string>
+    <string name="splash_tagline">Emergency Operations &amp; Response</string>
+    <string name="nav_dashboard">Dashboard</string>
+    <string name="nav_incidents">Incidents</string>
+    <string name="nav_notifications">Notifications</string>
+    <string name="nav_appliances">Appliances</string>
+    <string name="nav_profile">Profile</string>
+    <string name="nav_settings">Settings</string>
+    <string name="nav_login">Staff Sign In</string>
+    <string name="cd_back">Back</string>
+    <string name="foundation_ready">Foundation ready. Feature coming in next phase.</string>
+    <string name="dashboard_subtitle">Agency Operations Dashboard Foundation</string>
+</resources>
