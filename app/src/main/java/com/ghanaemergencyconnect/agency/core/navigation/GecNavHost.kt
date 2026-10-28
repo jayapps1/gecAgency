@@ -27,6 +27,9 @@ import com.ghanaemergencyconnect.agency.data.domain.repository.ReviewRepository
 import com.ghanaemergencyconnect.agency.data.domain.repository.SafetyRepository
 import com.ghanaemergencyconnect.agency.feature.appliances.AppliancesScreen
 import com.ghanaemergencyconnect.agency.feature.appliances.AppliancesViewModel
+import com.ghanaemergencyconnect.agency.feature.auth.ChangePasswordMode
+import com.ghanaemergencyconnect.agency.feature.auth.ChangePasswordScreen
+import com.ghanaemergencyconnect.agency.feature.auth.ChangePasswordViewModel
 import com.ghanaemergencyconnect.agency.feature.auth.LoginScreen
 import com.ghanaemergencyconnect.agency.feature.auth.LoginViewModel
 import com.ghanaemergencyconnect.agency.feature.dashboard.DashboardScreen
@@ -128,9 +131,16 @@ fun GecNavHost(
                 SplashScreen(
                     viewModel = splashViewModel,
                     onNavigateToDashboard = {
-                        navController.navigate(AppDestination.Dashboard.route) {
-                            popUpTo(AppDestination.Splash.route) { inclusive = true }
-                            launchSingleTop = true
+                        if (staff?.mustChangePassword == true) {
+                            navController.navigate(AppDestination.ChangePassword.createRoute(mandatory = true)) {
+                                popUpTo(AppDestination.Splash.route) { inclusive = true }
+                                launchSingleTop = true
+                            }
+                        } else {
+                            navController.navigate(AppDestination.Dashboard.route) {
+                                popUpTo(AppDestination.Splash.route) { inclusive = true }
+                                launchSingleTop = true
+                            }
                         }
                     },
                     onNavigateToLogin = {
@@ -158,9 +168,16 @@ fun GecNavHost(
                     onSubmitPassword = { loginViewModel.submitPasswordLogin() },
                     onSubmitAuthenticator = { loginViewModel.submitAuthenticatorLogin() },
                     onLoginSuccess = {
-                        navController.navigate(AppDestination.Dashboard.route) {
-                            popUpTo(AppDestination.Login.route) { inclusive = true }
-                            launchSingleTop = true
+                        if (staff?.mustChangePassword == true) {
+                            navController.navigate(AppDestination.ChangePassword.createRoute(mandatory = true)) {
+                                popUpTo(AppDestination.Login.route) { inclusive = true }
+                                launchSingleTop = true
+                            }
+                        } else {
+                            navController.navigate(AppDestination.Dashboard.route) {
+                                popUpTo(AppDestination.Login.route) { inclusive = true }
+                                launchSingleTop = true
+                            }
                         }
                     }
                 )
@@ -305,12 +322,71 @@ fun GecNavHost(
             composable(AppDestination.Profile.route) {
                 ProfileScreen(
                     staff = staff,
+                    onChangePasswordClick = {
+                        navController.navigate(AppDestination.ChangePassword.createRoute(mandatory = false))
+                    },
+                    onSignOut = {
+                        scope.launch {
+                            authRepository.logout()
+                            navController.navigate(AppDestination.Login.route) {
+                                popUpTo(AppDestination.Dashboard.route) { inclusive = true }
+                                launchSingleTop = true
+                            }
+                        }
+                    },
                     onBackClick = { navController.popBackStack() }
                 )
             }
 
             composable(AppDestination.Settings.route) {
                 SettingsScreen(
+                    onSignOut = {
+                        scope.launch {
+                            authRepository.logout()
+                            navController.navigate(AppDestination.Login.route) {
+                                popUpTo(AppDestination.Dashboard.route) { inclusive = true }
+                                launchSingleTop = true
+                            }
+                        }
+                    },
+                    onBackClick = { navController.popBackStack() }
+                )
+            }
+
+            composable(
+                route = AppDestination.ChangePassword.route,
+                arguments = listOf(navArgument("mandatory") {
+                    type = NavType.BoolType
+                    defaultValue = false
+                })
+            ) { backStackEntry ->
+                val mandatory = backStackEntry.arguments?.getBoolean("mandatory") ?: false
+                val changePasswordViewModel: ChangePasswordViewModel = viewModel(
+                    viewModelStoreOwner = backStackEntry,
+                    factory = viewModelFactory { ChangePasswordViewModel(authRepository) }
+                )
+                val changePasswordUiState by changePasswordViewModel.uiState.collectAsStateWithLifecycle()
+
+                ChangePasswordScreen(
+                    mode = if (mandatory) ChangePasswordMode.Mandatory else ChangePasswordMode.Voluntary,
+                    uiState = changePasswordUiState,
+                    onCurrentPasswordChanged = { changePasswordViewModel.onCurrentPasswordChanged(it) },
+                    onNewPasswordChanged = { changePasswordViewModel.onNewPasswordChanged(it) },
+                    onConfirmPasswordChanged = { changePasswordViewModel.onConfirmPasswordChanged(it) },
+                    onToggleCurrentVisibility = { changePasswordViewModel.toggleCurrentVisibility() },
+                    onToggleNewVisibility = { changePasswordViewModel.toggleNewVisibility() },
+                    onToggleConfirmVisibility = { changePasswordViewModel.toggleConfirmVisibility() },
+                    onSubmit = { changePasswordViewModel.submitChangePassword() },
+                    onSuccessComplete = {
+                        if (mandatory) {
+                            navController.navigate(AppDestination.Dashboard.route) {
+                                popUpTo(AppDestination.ChangePassword.route) { inclusive = true }
+                                launchSingleTop = true
+                            }
+                        } else {
+                            navController.popBackStack()
+                        }
+                    },
                     onSignOut = {
                         scope.launch {
                             authRepository.logout()

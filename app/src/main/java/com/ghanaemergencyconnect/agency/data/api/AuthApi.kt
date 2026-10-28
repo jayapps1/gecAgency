@@ -1,6 +1,7 @@
 package com.ghanaemergencyconnect.agency.data.api
 
 import com.ghanaemergencyconnect.agency.data.dto.AdminUserResponseDto
+import com.ghanaemergencyconnect.agency.data.dto.ChangePasswordRequestDto
 import com.ghanaemergencyconnect.agency.data.dto.LoginRequestDto
 import com.ghanaemergencyconnect.agency.data.dto.LoginResponseDto
 import com.ghanaemergencyconnect.agency.data.dto.TotpLoginRequestDto
@@ -29,4 +30,9 @@ interface AuthApi {
 
     @GET("api/v1/staff/me")
     suspend fun getStaffProfile(): Response<AdminUserResponseDto>
+
+    @POST("api/v1/admin/auth/change-password")
+    suspend fun changePassword(
+        @Body request: ChangePasswordRequestDto
+    ): Response<Void>
 }

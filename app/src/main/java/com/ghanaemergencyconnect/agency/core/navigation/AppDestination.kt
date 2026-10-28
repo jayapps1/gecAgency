@@ -46,4 +46,9 @@ sealed interface AppDestination {
     data object Reviews : AppDestination {
         override val route: String = "reviews"
     }
+
+    data object ChangePassword : AppDestination {
+        override val route: String = "change-password?mandatory={mandatory}"
+        fun createRoute(mandatory: Boolean = false): String = "change-password?mandatory=$mandatory"
+    }
 }

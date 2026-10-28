@@ -1,40 +1,19 @@
-feat: Production-grade Android Staff Operations App for Ghana Emergency Connect Agency
+feat: Implement Mandatory Password Change Gate, Voluntary Profile Change Password, and Independent Responder Flow
 
-Comprehensive Staff Operations & Emergency Response Android Application for Ghana Emergency Connect Agency.
+Features & Enhancements:
+1. Global Mandatory Password Change Gate:
+   - Evaluates `mustChangePassword` flag on login and session restoration (`restoreSession()`).
+   - Intercepts temporary password accounts and routes directly to `ChangePasswordScreen` (Mandatory mode) before Dashboard access.
+   - Restricts back-navigation in Mandatory mode and offers a "Sign Out" action button.
 
-Key Capabilities & Architectural Highlights:
-1. Glassmorphic Design System & Branding:
-   - Centralized Material 3 color system (Deep Navy #0B1F33, Emergency Blue #1769AA, #F4F7FA surface).
-   - Reusable GecGlassCard with translucent surfaces, soft borders, and elevation.
-   - Official GEC Shield Emblem artwork (ic_gec_logo.xml) and white adaptive app launcher icon.
-   - Translucent floating bottom navigation bar (GecBottomNavigation) with 24dp rounded corners.
+2. Voluntary Password Change & Profile Security:
+   - Added "Account Security" card to ProfileScreen with a "Change Password" button.
+   - Navigates to `ChangePasswordScreen` (Voluntary mode) with current password, new password, and confirm password fields.
 
-2. Authentication & Security Hardening:
-   - Password and TOTP 2-Step Authenticator login flows.
-   - Segmented button selector, input validation, leading field icons, and inline error containers.
-   - EncryptedSharedPreferences session storage with account-partitioned cache wiping on logout.
-   - Zero password/TOTP persistence or logging.
+3. Change Password Workspace:
+   - Material 3 Glassmorphic screen (`ChangePasswordScreen.kt`) with lock icons, trailing visibility toggles, and transient in-memory state (`ChangePasswordViewModel.kt`).
+   - Locally validates matching confirm password before invoking `authRepository.changePassword`.
+   - On success, automatically refreshes staff profile to clear `mustChangePassword` flag and routes to role-specific dashboard.
 
-3. Incident Operations Workspace:
-   - Incident queue triage with live category search, filter chips (All Active, Received, Acknowledged, In Progress, Resolved).
-   - Operational incident cards with GecStatusChip and explicit text SLA badges (On Time, Attention, Delayed with red border accent).
-   - Incident Detail workspace with Hero Glass Card, narrative description, location card with Google Maps intent handoff, and append-only timeline history.
-   - Operational Action Panel allowing authorized roles to acknowledge, start response actions, and resolve assignments.
-
-4. Individual Responder Assignment & Dispatch:
-   - Agency-scoped responder dispatch per ReportAssignment (multi-agency isolation).
-   - Modal bottom sheet responder picker with active staff filtering and duplicate assignment prevention.
-   - Release responder confirmation dialogs while preserving operational history.
-   - Responder workspace ("My Active Incident Assignments") with read-only incident detail and location maps handoff.
-   - Persistent StaffNotifications, FCM push signals, and SSE realtime events.
-
-5. Staff Alert Center & Fleet Readiness:
-   - Notifications screen with glass unread alert summary, category icons (Warning, Safety, Operational, System), and deep link navigation.
-   - Appliance Fleet Readiness workspace with 2-column metric grid (Available, Dispatched, Maintenance, Out of Commission), search, and temporary station relocation badges.
-
-6. Account Scope, Safety & Reviews:
-   - ProfileScreen displaying initials avatar and OperationalScopeCard (Agency, Region, Station, Role).
-   - SettingsScreen with GEC About card, security policy, development environment indicator, and Sign Out confirmation dialog.
-   - SafetyInformationScreen with severity chips (INFO, ADVISORY, WARNING, CRITICAL) and advisory creation form.
-   - ReviewListScreen with accessible 1-5 star rating displays and station-scoped feedback.
-   - Role-customized dashboards for Agency Admin, Regional Admin, Station Admin, Control Room Operator, Responder (Read-Only), System Admin, and Restricted roles.
+4. Independent Responder Navigation:
+   - Confirmed `StaffRole.RESPONDER` routes directly to `ResponderDashboard.kt` with independent access to assigned incidents, notifications, read-only fleet availability, and profile with zero dependency on `CONTROL_ROOM_OPERATOR`.

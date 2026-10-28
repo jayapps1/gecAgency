@@ -3,6 +3,7 @@ package com.ghanaemergencyconnect.agency.data.repository
 import com.ghanaemergencyconnect.agency.core.auth.SessionState
 import com.ghanaemergencyconnect.agency.core.security.SecureSessionManager
 import com.ghanaemergencyconnect.agency.data.api.AuthApi
+import com.ghanaemergencyconnect.agency.data.dto.ChangePasswordRequestDto
 import com.ghanaemergencyconnect.agency.data.dto.LoginRequestDto
 import com.ghanaemergencyconnect.agency.data.dto.TotpLoginRequestDto
 import com.ghanaemergencyconnect.agency.data.mapper.toDomain
@@ -130,6 +131,21 @@ class AuthRepositoryImpl(
             )
             _sessionState.value = SessionState.Authenticated(staff)
             SessionState.Authenticated(staff)
+        }
+    }
+
+    override suspend fun changePassword(currentPassword: String, newPassword: String): Result<Unit> {
+        return try {
+            val response = authApi.changePassword(ChangePasswordRequestDto(currentPassword = currentPassword, newPassword = newPassword))
+            if (response.isSuccessful) {
+                restoreSession()
+                Result.success(Unit)
+            } else {
+                val errorMsg = parseErrorMessage(response.errorBody()?.string())
+                Result.failure(Exception(errorMsg))
+            }
+        } catch (e: Exception) {
+            Result.failure(Exception("Unable to change password. Check your connection and try again."))
         }
     }
 
