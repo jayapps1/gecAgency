@@ -10,5 +10,8 @@ interface AuthRepository {
     suspend fun loginTotp(identifier: String, code: String): Result<Unit>
     suspend fun restoreSession(): SessionState
     suspend fun changePassword(currentPassword: String, newPassword: String): Result<Unit>
+    suspend fun startTotpSetup(): Result<Map<String, String>>
+    suspend fun confirmTotpSetup(code: String): Result<Unit>
+    suspend fun disableTotp(password: String): Result<Unit>
     suspend fun logout(): Result<Unit>
 }

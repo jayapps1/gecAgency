@@ -1,8 +1,5 @@
 package com.ghanaemergencyconnect.agency.feature.settings
 
-import androidx.compose.foundation.Image
-import androidx.compose.foundation.background
-import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
@@ -13,7 +10,6 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.rememberScrollState
-import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
@@ -35,12 +31,11 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.draw.clip
-import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.dp
 import com.ghanaemergencyconnect.agency.BuildConfig
 import com.ghanaemergencyconnect.agency.R
+import com.ghanaemergencyconnect.agency.core.ui.component.GecBrandLogo
 import com.ghanaemergencyconnect.agency.core.ui.component.GecGlassCard
 import com.ghanaemergencyconnect.agency.core.ui.component.GecTopAppBar
 
@@ -97,20 +92,7 @@ fun SettingsScreen(
                 // About Card
                 GecGlassCard(modifier = Modifier.fillMaxWidth()) {
                     Row(verticalAlignment = Alignment.CenterVertically) {
-                        Box(
-                            contentAlignment = Alignment.Center,
-                            modifier = Modifier
-                                .size(48.dp)
-                                .clip(CircleShape)
-                                .background(MaterialTheme.colorScheme.surface)
-                                .padding(6.dp)
-                        ) {
-                            Image(
-                                painter = painterResource(id = R.drawable.ic_gec_logo),
-                                contentDescription = null,
-                                modifier = Modifier.fillMaxSize()
-                            )
-                        }
+                        GecBrandLogo(size = 48.dp)
                         Spacer(modifier = Modifier.width(12.dp))
                         Column {
                             Text(

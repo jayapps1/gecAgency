@@ -7,8 +7,8 @@ fun AdminUserResponseDto.toDomain(): AuthenticatedStaff {
     return AuthenticatedStaff(
         id = id,
         email = email,
-        firstName = firstName ?: "",
-        lastName = lastName ?: "",
+        firstName = firstName,
+        lastName = lastName,
         phoneNumber = phoneNumber,
         agencyId = agencyId,
         agencyName = agencyName,
@@ -18,6 +18,7 @@ fun AdminUserResponseDto.toDomain(): AuthenticatedStaff {
         active = active,
         locked = locked,
         mustChangePassword = mustChangePassword,
-        roles = roles ?: emptySet()
+        totpEnabled = totpEnabled,
+        roles = roles
     )
 }

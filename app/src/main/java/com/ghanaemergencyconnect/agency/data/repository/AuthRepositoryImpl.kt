@@ -149,6 +149,50 @@ class AuthRepositoryImpl(
         }
     }
 
+    override suspend fun startTotpSetup(): Result<Map<String, String>> {
+        return try {
+            val response = authApi.startTotpSetup()
+            if (response.isSuccessful && response.body() != null) {
+                Result.success(response.body()!!)
+            } else {
+                val errorMsg = parseErrorMessage(response.errorBody()?.string())
+                Result.failure(Exception(errorMsg))
+            }
+        } catch (e: Exception) {
+            Result.failure(Exception("Unable to start Authenticator setup. Check your connection and try again."))
+        }
+    }
+
+    override suspend fun confirmTotpSetup(code: String): Result<Unit> {
+        return try {
+            val response = authApi.confirmTotpSetup(mapOf("code" to code.trim()))
+            if (response.isSuccessful) {
+                restoreSession()
+                Result.success(Unit)
+            } else {
+                val errorMsg = parseErrorMessage(response.errorBody()?.string())
+                Result.failure(Exception(errorMsg))
+            }
+        } catch (e: Exception) {
+            Result.failure(Exception("Unable to verify 6-digit code. Check your connection and try again."))
+        }
+    }
+
+    override suspend fun disableTotp(password: String): Result<Unit> {
+        return try {
+            val response = authApi.disableTotp(mapOf("password" to password))
+            if (response.isSuccessful) {
+                restoreSession()
+                Result.success(Unit)
+            } else {
+                val errorMsg = parseErrorMessage(response.errorBody()?.string())
+                Result.failure(Exception(errorMsg))
+            }
+        } catch (e: Exception) {
+            Result.failure(Exception("Unable to disable Authenticator. Check your current password and try again."))
+        }
+    }
+
     override suspend fun logout(): Result<Unit> {
         return try {
             authApi.logout()

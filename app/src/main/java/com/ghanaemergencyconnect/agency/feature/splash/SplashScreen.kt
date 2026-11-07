@@ -19,6 +19,7 @@ import androidx.compose.ui.unit.dp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.ghanaemergencyconnect.agency.R
 import com.ghanaemergencyconnect.agency.core.auth.SessionState
+import com.ghanaemergencyconnect.agency.core.ui.component.GecBrandLogo
 
 @Composable
 fun SplashScreen(
@@ -51,6 +52,8 @@ fun SplashScreen(
             horizontalAlignment = Alignment.CenterHorizontally,
             verticalArrangement = Arrangement.Center
         ) {
+            GecBrandLogo(size = 80.dp)
+            Spacer(modifier = Modifier.height(20.dp))
             Text(
                 text = stringResource(R.string.app_title),
                 style = MaterialTheme.typography.headlineLarge,

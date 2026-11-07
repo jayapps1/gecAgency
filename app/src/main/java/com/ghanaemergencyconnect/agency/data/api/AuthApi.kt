@@ -35,4 +35,17 @@ interface AuthApi {
     suspend fun changePassword(
         @Body request: ChangePasswordRequestDto
     ): Response<Void>
+
+    @POST("api/v1/admin/auth/mfa/totp/setup")
+    suspend fun startTotpSetup(): Response<Map<String, String>>
+
+    @POST("api/v1/admin/auth/mfa/totp/confirm")
+    suspend fun confirmTotpSetup(
+        @Body body: Map<String, String>
+    ): Response<Map<String, Any>>
+
+    @POST("api/v1/admin/auth/mfa/totp/disable")
+    suspend fun disableTotp(
+        @Body body: Map<String, String>
+    ): Response<Map<String, String>>
 }

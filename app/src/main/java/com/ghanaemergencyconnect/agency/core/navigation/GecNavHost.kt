@@ -32,6 +32,8 @@ import com.ghanaemergencyconnect.agency.feature.auth.ChangePasswordScreen
 import com.ghanaemergencyconnect.agency.feature.auth.ChangePasswordViewModel
 import com.ghanaemergencyconnect.agency.feature.auth.LoginScreen
 import com.ghanaemergencyconnect.agency.feature.auth.LoginViewModel
+import com.ghanaemergencyconnect.agency.feature.auth.TotpSetupScreen
+import com.ghanaemergencyconnect.agency.feature.auth.TotpSetupViewModel
 import com.ghanaemergencyconnect.agency.feature.dashboard.DashboardScreen
 import com.ghanaemergencyconnect.agency.feature.incidentdetail.IncidentDetailScreen
 import com.ghanaemergencyconnect.agency.feature.incidentdetail.IncidentDetailViewModel
@@ -72,6 +74,7 @@ fun GecNavHost(
     reviewRepository: com.ghanaemergencyconnect.agency.data.domain.repository.ReviewRepository
 ) {
     val sessionState by authRepository.sessionState.collectAsStateWithLifecycle()
+    val unreadNotificationCount by notificationRepository.unreadCount.collectAsStateWithLifecycle()
     val scope = rememberCoroutineScope()
     val navBackStackEntry by navController.currentBackStackEntryAsState()
     val currentRoute = navBackStackEntry?.destination?.route
@@ -111,6 +114,7 @@ fun GecNavHost(
                 GecBottomNavigation(
                     currentDestination = currentRoute,
                     destinations = bottomNavItems,
+                    unreadCount = unreadNotificationCount,
                     onDestinationSelected = { destination ->
                         navigateTopLevel(destination)
                     }
@@ -325,6 +329,14 @@ fun GecNavHost(
                     onChangePasswordClick = {
                         navController.navigate(AppDestination.ChangePassword.createRoute(mandatory = false))
                     },
+                    onSetupTotpClick = {
+                        navController.navigate(AppDestination.TotpSetup.route)
+                    },
+                    onDisableTotp = { password ->
+                        scope.launch {
+                            authRepository.disableTotp(password)
+                        }
+                    },
                     onSignOut = {
                         scope.launch {
                             authRepository.logout()
@@ -395,6 +407,25 @@ fun GecNavHost(
                                 launchSingleTop = true
                             }
                         }
+                    },
+                    onBackClick = { navController.popBackStack() }
+                )
+            }
+
+            composable(AppDestination.TotpSetup.route) { backStackEntry ->
+                val totpViewModel: TotpSetupViewModel = viewModel(
+                    viewModelStoreOwner = backStackEntry,
+                    factory = viewModelFactory { TotpSetupViewModel(authRepository) }
+                )
+                val totpUiState by totpViewModel.uiState.collectAsStateWithLifecycle()
+
+                TotpSetupScreen(
+                    uiState = totpUiState,
+                    onStartSetup = { totpViewModel.startSetup() },
+                    onCodeChanged = { totpViewModel.onCodeChanged(it) },
+                    onConfirmSetup = { totpViewModel.confirmSetup() },
+                    onSuccessComplete = {
+                        navController.popBackStack()
                     },
                     onBackClick = { navController.popBackStack() }
                 )

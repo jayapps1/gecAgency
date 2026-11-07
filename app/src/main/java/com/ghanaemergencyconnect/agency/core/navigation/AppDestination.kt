@@ -51,4 +51,8 @@ sealed interface AppDestination {
         override val route: String = "change-password?mandatory={mandatory}"
         fun createRoute(mandatory: Boolean = false): String = "change-password?mandatory=$mandatory"
     }
+
+    data object TotpSetup : AppDestination {
+        override val route: String = "totp-setup"
+    }
 }

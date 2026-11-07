@@ -51,6 +51,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.unit.dp
+import com.ghanaemergencyconnect.agency.core.location.ResponseTrackingService
 import com.ghanaemergencyconnect.agency.core.ui.component.GecGlassCard
 import com.ghanaemergencyconnect.agency.core.ui.component.GecTopAppBar
 import com.ghanaemergencyconnect.agency.core.util.SlaTimerUtils
@@ -218,35 +219,15 @@ fun IncidentDetailScreen(
                     uiState.isLoading -> {
                         Column(
                             modifier = Modifier
-                                .fillMaxWidth()
-                                .height(300.dp),
+                                .fillMaxSize()
+                                .padding(32.dp),
                             horizontalAlignment = Alignment.CenterHorizontally,
                             verticalArrangement = Arrangement.Center
                         ) {
                             CircularProgressIndicator()
-                            Spacer(modifier = Modifier.height(16.dp))
-                            Text(
-                                text = "Loading incident details...",
-                                style = MaterialTheme.typography.bodyMedium,
-                                color = MaterialTheme.colorScheme.onSurfaceVariant
-                            )
                         }
                     }
-
-                    !uiState.errorMessage.isNullOrBlank() -> {
-                        GecGlassCard(modifier = Modifier.fillMaxWidth()) {
-                            Text(
-                                text = uiState.errorMessage,
-                                style = MaterialTheme.typography.bodyMedium,
-                                color = MaterialTheme.colorScheme.error
-                            )
-                            Spacer(modifier = Modifier.height(12.dp))
-                            Button(onClick = onRefresh) { Text("Retry") }
-                        }
-                    }
-
                     detail != null -> {
-                        // Hero Glass Card
                         val isDelayed = responseSla.uppercase() == "DELAYED"
                         GecGlassCard(
                             borderColor = if (isDelayed) MaterialTheme.colorScheme.error else MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.5f),
@@ -366,28 +347,36 @@ fun IncidentDetailScreen(
 
                             if (detail.latitude != null && detail.longitude != null) {
                                 Spacer(modifier = Modifier.height(12.dp))
-                                OutlinedButton(
-                                    onClick = {
-                                        val mapIntent = Intent(
-                                            Intent.ACTION_VIEW,
-                                            Uri.parse("geo:${detail.latitude},${detail.longitude}?q=${detail.latitude},${detail.longitude}(Incident+Location)")
-                                        )
-                                        try {
-                                            context.startActivity(mapIntent)
-                                        } catch (e: Exception) {
-                                            // Map app unavailable
-                                        }
-                                    },
-                                    shape = RoundedCornerShape(12.dp),
-                                    modifier = Modifier.fillMaxWidth()
-                                ) {
-                                    Icon(
-                                        imageVector = Icons.Default.Map,
-                                        contentDescription = null,
-                                        modifier = Modifier.size(18.dp)
-                                    )
-                                    Spacer(modifier = Modifier.width(8.dp))
-                                    Text("Open Location in Maps")
+                                Row(horizontalArrangement = Arrangement.spacedBy(8.dp), modifier = Modifier.fillMaxWidth()) {
+                                    // Omits the route origin so Google Maps can navigate from the response device's current position rather than the station it originally left.
+                                    Button(
+                                        onClick = {
+                                            val googleMapsUrl = "https://www.google.com/maps/dir/?api=1&destination=${detail.latitude},${detail.longitude}&travelmode=driving&dir_action=navigate"
+                                            val mapIntent = Intent(Intent.ACTION_VIEW, Uri.parse(googleMapsUrl))
+                                            try {
+                                                context.startActivity(mapIntent)
+                                            } catch (_: Exception) {}
+                                        },
+                                        shape = RoundedCornerShape(12.dp),
+                                        modifier = Modifier.weight(1f)
+                                    ) {
+                                        Icon(imageVector = Icons.Default.Map, contentDescription = null, modifier = Modifier.size(18.dp))
+                                        Spacer(modifier = Modifier.width(6.dp))
+                                        Text("Navigate to Incident")
+                                    }
+
+                                    // Uses the designated Response Lead's device as the temporary live location source for the assigned appliance until dedicated vehicle GPS is available.
+                                    OutlinedButton(
+                                        onClick = {
+                                            ResponseTrackingService.startService(context, detail.id)
+                                        },
+                                        shape = RoundedCornerShape(12.dp),
+                                        modifier = Modifier.weight(1f)
+                                    ) {
+                                        Icon(imageVector = Icons.Default.LocationOn, contentDescription = null, modifier = Modifier.size(18.dp))
+                                        Spacer(modifier = Modifier.width(6.dp))
+                                        Text("Start Response Tracking")
+                                    }
                                 }
                             }
                         }
@@ -431,17 +420,16 @@ fun IncidentDetailScreen(
                                 }
                             }
 
-                            Spacer(modifier = Modifier.height(12.dp))
+                            Spacer(modifier = Modifier.height(8.dp))
 
-                            val activeResponders = uiState.assignedResponders.filter { it.active }
-                            if (activeResponders.isEmpty()) {
+                            if (detail.responderAssignments.isEmpty()) {
                                 Text(
-                                    text = "No responders currently assigned to this incident.",
+                                    text = "No individual field responders assigned yet.",
                                     style = MaterialTheme.typography.bodyMedium,
                                     color = MaterialTheme.colorScheme.onSurfaceVariant
                                 )
                             } else {
-                                activeResponders.forEachIndexed { index, resp ->
+                                detail.responderAssignments.forEach { assignment ->
                                     Row(
                                         modifier = Modifier
                                             .fillMaxWidth()
@@ -450,187 +438,85 @@ fun IncidentDetailScreen(
                                         verticalAlignment = Alignment.CenterVertically
                                     ) {
                                         Row(verticalAlignment = Alignment.CenterVertically) {
-                                            Box(
-                                                contentAlignment = Alignment.Center,
-                                                modifier = Modifier
-                                                    .size(32.dp)
-                                                    .clip(CircleShape)
-                                                    .background(MaterialTheme.colorScheme.primaryContainer)
-                                            ) {
-                                                Icon(
-                                                    imageVector = Icons.Default.Person,
-                                                    contentDescription = null,
-                                                    tint = MaterialTheme.colorScheme.primary,
-                                                    modifier = Modifier.size(18.dp)
-                                                )
-                                            }
+                                            Icon(
+                                                imageVector = Icons.Default.Person,
+                                                contentDescription = null,
+                                                tint = MaterialTheme.colorScheme.primary,
+                                                modifier = Modifier.size(18.dp)
+                                            )
                                             Spacer(modifier = Modifier.width(8.dp))
                                             Column {
-                                                Text(text = resp.responderName, style = MaterialTheme.typography.bodyMedium)
-                                                Text(
-                                                    text = "${resp.responderRole}${resp.stationName?.let { " • $it" } ?: ""}",
-                                                    style = MaterialTheme.typography.bodySmall,
-                                                    color = MaterialTheme.colorScheme.onSurfaceVariant
-                                                )
+                                                Text(text = assignment.responderName, style = MaterialTheme.typography.bodyMedium, fontWeight = FontWeight.Bold)
+                                                Text(text = "Status: ${assignment.status}", style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
                                             }
                                         }
 
-                                        if (!isResponder) {
-                                            IconButton(onClick = { releaseTarget = resp }) {
-                                                Icon(
-                                                    imageVector = Icons.Default.Delete,
-                                                    contentDescription = "Release responder",
-                                                    tint = MaterialTheme.colorScheme.error,
-                                                    modifier = Modifier.size(18.dp)
-                                                )
+                                        if (!isResponder && assignment.status.uppercase() != "RELEASED") {
+                                            IconButton(onClick = { releaseTarget = assignment }) {
+                                                Icon(imageVector = Icons.Default.Delete, contentDescription = "Release", tint = MaterialTheme.colorScheme.error)
                                             }
                                         }
-                                    }
-                                    if (index < activeResponders.size - 1) {
-                                        HorizontalDivider(color = MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.5f), modifier = Modifier.padding(vertical = 4.dp))
                                     }
                                 }
                             }
                         }
 
-                        // Operational Actions Area
-                        if (!isResponder && currentStatus != null && !currentStatus.isTerminal) {
-                            Spacer(modifier = Modifier.height(16.dp))
+                        Spacer(modifier = Modifier.height(16.dp))
 
-                            GecGlassCard(modifier = Modifier.fillMaxWidth()) {
-                                Text(
-                                    text = "Operational Action Panel",
-                                    style = MaterialTheme.typography.titleMedium,
-                                    color = MaterialTheme.colorScheme.primary
-                                )
-                                Spacer(modifier = Modifier.height(12.dp))
+                        // Status Actions Panel
+                        GecGlassCard(modifier = Modifier.fillMaxWidth()) {
+                            Text(
+                                text = "Operational Control Actions",
+                                style = MaterialTheme.typography.titleMedium,
+                                color = MaterialTheme.colorScheme.primary
+                            )
 
+                            Spacer(modifier = Modifier.height(12.dp))
+
+                            Row(
+                                modifier = Modifier.fillMaxWidth(),
+                                horizontalArrangement = Arrangement.spacedBy(8.dp)
+                            ) {
                                 when (currentStatus) {
-                                    IncidentAssignmentStatus.SUBMITTED,
-                                    IncidentAssignmentStatus.ASSIGNED,
-                                    IncidentAssignmentStatus.RECEIVED -> {
+                                    IncidentAssignmentStatus.ASSIGNED, IncidentAssignmentStatus.RECEIVED -> {
                                         Button(
                                             onClick = onAcknowledge,
-                                            enabled = !uiState.isPerformingAction,
-                                            shape = RoundedCornerShape(12.dp),
-                                            modifier = Modifier
-                                                .fillMaxWidth()
-                                                .height(50.dp)
+                                            modifier = Modifier.weight(1f)
                                         ) {
-                                            if (uiState.isPerformingAction) {
-                                                CircularProgressIndicator(
-                                                    color = MaterialTheme.colorScheme.onPrimary,
-                                                    strokeWidth = 2.dp,
-                                                    modifier = Modifier.size(20.dp).padding(end = 8.dp)
-                                                )
-                                            }
-                                            Text("Acknowledge Incident Assignment")
+                                            Text("Acknowledge")
                                         }
                                     }
-
                                     IncidentAssignmentStatus.ACKNOWLEDGED -> {
                                         Button(
                                             onClick = onStartAction,
-                                            enabled = !uiState.isPerformingAction,
-                                            shape = RoundedCornerShape(12.dp),
-                                            modifier = Modifier
-                                                .fillMaxWidth()
-                                                .height(50.dp)
+                                            colors = ButtonDefaults.buttonColors(containerColor = MaterialTheme.colorScheme.tertiary),
+                                            modifier = Modifier.weight(1f)
                                         ) {
-                                            if (uiState.isPerformingAction) {
-                                                CircularProgressIndicator(
-                                                    color = MaterialTheme.colorScheme.onPrimary,
-                                                    strokeWidth = 2.dp,
-                                                    modifier = Modifier.size(20.dp).padding(end = 8.dp)
-                                                )
-                                            }
-                                            Text("Start Operational Response")
+                                            Text("Start Action")
                                         }
                                     }
-
                                     IncidentAssignmentStatus.IN_PROGRESS -> {
                                         Button(
                                             onClick = { showResolveDialog = true },
-                                            enabled = !uiState.isPerformingAction,
-                                            colors = ButtonDefaults.buttonColors(
-                                                containerColor = MaterialTheme.colorScheme.primary
-                                            ),
-                                            shape = RoundedCornerShape(12.dp),
-                                            modifier = Modifier
-                                                .fillMaxWidth()
-                                                .height(50.dp)
+                                            colors = ButtonDefaults.buttonColors(containerColor = MaterialTheme.colorScheme.primary),
+                                            modifier = Modifier.weight(1f)
                                         ) {
-                                            if (uiState.isPerformingAction) {
-                                                CircularProgressIndicator(
-                                                    color = MaterialTheme.colorScheme.onPrimary,
-                                                    strokeWidth = 2.dp,
-                                                    modifier = Modifier.size(20.dp).padding(end = 8.dp)
-                                                )
-                                            }
                                             Text("Resolve Assignment")
                                         }
                                     }
-
-                                    else -> { /* Terminal state */ }
-                                }
-                            }
-                        }
-
-                        // Timeline History Card
-                        if (detail.statusHistory.isNotEmpty()) {
-                            Spacer(modifier = Modifier.height(16.dp))
-
-                            GecGlassCard(modifier = Modifier.fillMaxWidth()) {
-                                Row(verticalAlignment = Alignment.CenterVertically) {
-                                    Icon(
-                                        imageVector = Icons.Default.History,
-                                        contentDescription = null,
-                                        tint = MaterialTheme.colorScheme.primary,
-                                        modifier = Modifier.size(20.dp)
-                                    )
-                                    Spacer(modifier = Modifier.width(8.dp))
-                                    Text(
-                                        text = "Timeline History",
-                                        style = MaterialTheme.typography.titleMedium,
-                                        color = MaterialTheme.colorScheme.primary
-                                    )
-                                }
-
-                                Spacer(modifier = Modifier.height(12.dp))
-
-                                detail.statusHistory.forEachIndexed { index, item ->
-                                    Column(modifier = Modifier.padding(vertical = 4.dp)) {
-                                        Row(
-                                            modifier = Modifier.fillMaxWidth(),
-                                            horizontalArrangement = Arrangement.SpaceBetween
-                                        ) {
-                                            Text(
-                                                text = item.status.label,
-                                                style = MaterialTheme.typography.titleMedium,
-                                                color = MaterialTheme.colorScheme.onSurface
-                                            )
-                                            Text(
-                                                text = item.timestamp.take(16),
-                                                style = MaterialTheme.typography.bodySmall,
-                                                color = MaterialTheme.colorScheme.onSurfaceVariant
-                                            )
-                                        }
-                                        if (!item.note.isNullOrBlank()) {
-                                            Spacer(modifier = Modifier.height(2.dp))
-                                            Text(
-                                                text = item.note,
-                                                style = MaterialTheme.typography.bodyMedium,
-                                                color = MaterialTheme.colorScheme.onSurfaceVariant
-                                            )
-                                        }
-                                        if (index < detail.statusHistory.size - 1) {
-                                            Spacer(modifier = Modifier.height(8.dp))
-                                            HorizontalDivider(color = MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.5f))
-                                        }
+                                    else -> {
+                                        Text(
+                                            text = "Assignment is ${currentStatus?.label ?: "completed"}.",
+                                            style = MaterialTheme.typography.bodyMedium,
+                                            color = MaterialTheme.colorScheme.onSurfaceVariant
+                                        )
                                     }
                                 }
                             }
                         }
+                    }
+                    else -> {
+                        Text("Incident detail unavailable.", style = MaterialTheme.typography.bodyLarge)
                     }
                 }
             }

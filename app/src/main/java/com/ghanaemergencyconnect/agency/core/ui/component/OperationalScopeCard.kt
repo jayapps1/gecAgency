@@ -55,7 +55,7 @@ fun OperationalScopeCard(
 
             Column(modifier = Modifier.weight(1f)) {
                 Text(
-                    text = staff.displayName,
+                    text = staff.fullName,
                     style = MaterialTheme.typography.titleLarge
                 )
                 Spacer(modifier = Modifier.height(2.dp))
@@ -68,7 +68,7 @@ fun OperationalScopeCard(
                         .padding(horizontal = 8.dp, vertical = 2.dp)
                 ) {
                     Text(
-                        text = staff.primaryRoleLabel.uppercase(),
+                        text = staff.primaryRole.label.uppercase(),
                         style = MaterialTheme.typography.labelMedium,
                         color = MaterialTheme.colorScheme.primary
                     )

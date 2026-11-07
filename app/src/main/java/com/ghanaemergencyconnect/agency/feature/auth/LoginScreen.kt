@@ -1,6 +1,5 @@
 package com.ghanaemergencyconnect.agency.feature.auth
 
-import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
@@ -14,7 +13,6 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.rememberScrollState
-import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.text.KeyboardActions
 import androidx.compose.foundation.text.KeyboardOptions
@@ -48,22 +46,21 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
-import androidx.compose.ui.res.painterResource
+import androidx.compose.ui.focus.FocusDirection
+import androidx.compose.ui.platform.LocalFocusManager
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.input.ImeAction
 import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.text.input.PasswordVisualTransformation
 import androidx.compose.ui.text.input.VisualTransformation
 import androidx.compose.ui.unit.dp
-import com.ghanaemergencyconnect.agency.BuildConfig
 import com.ghanaemergencyconnect.agency.R
-import com.ghanaemergencyconnect.agency.core.ui.component.GecGlassCard
-import com.ghanaemergencyconnect.agency.core.ui.component.GecTopAppBar
+import com.ghanaemergencyconnect.agency.core.ui.component.GecBrandLogo
 import com.ghanaemergencyconnect.agency.core.ui.component.SixDigitCodeInput
 
 /**
- * Staff Login screen presenting independent Password and Authenticator (TOTP) sign-in tabs.
- * Form ownership and validation remain in LoginViewModel so visual redesigns cannot change authentication behavior.
+ * Authentication screen supporting Password and Authenticator 2-Step Verification modes.
+ * Password fields and code fields handle obscurement and input types cleanly.
  */
 @Composable
 fun LoginScreen(
@@ -74,10 +71,10 @@ fun LoginScreen(
     onCodeChanged: (String) -> Unit,
     onSubmitPassword: () -> Unit,
     onSubmitAuthenticator: () -> Unit,
-    onLoginSuccess: () -> Unit,
-    onBackClick: (() -> Unit)? = null
+    onLoginSuccess: () -> Unit
 ) {
-    var passwordVisible by remember { mutableStateOf(false) }
+    var isPasswordVisible by remember { mutableStateOf(false) }
+    val focusManager = LocalFocusManager.current
 
     LaunchedEffect(uiState.isSuccess) {
         if (uiState.isSuccess) {
@@ -85,14 +82,7 @@ fun LoginScreen(
         }
     }
 
-    Scaffold(
-        topBar = {
-            GecTopAppBar(
-                title = stringResource(R.string.nav_login),
-                onBackClick = onBackClick
-            )
-        }
-    ) { innerPadding ->
+    Scaffold { innerPadding ->
         Surface(
             modifier = Modifier
                 .fillMaxSize()
@@ -110,20 +100,7 @@ fun LoginScreen(
                 Spacer(modifier = Modifier.height(12.dp))
 
                 // Branding Header
-                Box(
-                    contentAlignment = Alignment.Center,
-                    modifier = Modifier
-                        .size(72.dp)
-                        .clip(CircleShape)
-                        .background(MaterialTheme.colorScheme.surface)
-                        .padding(8.dp)
-                ) {
-                    Image(
-                        painter = painterResource(id = R.drawable.ic_gec_logo),
-                        contentDescription = stringResource(R.string.app_name),
-                        modifier = Modifier.fillMaxSize()
-                    )
-                }
+                GecBrandLogo(size = 64.dp)
 
                 Spacer(modifier = Modifier.height(12.dp))
 
@@ -146,173 +123,215 @@ fun LoginScreen(
 
                 Spacer(modifier = Modifier.height(24.dp))
 
-                // Floating Elevated Login Glass Card
-                GecGlassCard(
-                    cornerRadius = 20.dp,
+                Card(
+                    colors = CardDefaults.cardColors(
+                        containerColor = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.5f)
+                    ),
+                    shape = RoundedCornerShape(16.dp),
                     modifier = Modifier.fillMaxWidth()
                 ) {
-                    Text(
-                        text = "Staff Sign In",
-                        style = MaterialTheme.typography.titleLarge,
-                        color = MaterialTheme.colorScheme.primary
-                    )
-                    Text(
-                        text = "Sign in to access emergency operations",
-                        style = MaterialTheme.typography.bodyMedium,
-                        color = MaterialTheme.colorScheme.onSurfaceVariant
-                    )
-
-                    Spacer(modifier = Modifier.height(20.dp))
-
-                    // Segmented Mode Selector
-                    SingleChoiceSegmentedButtonRow(
-                        modifier = Modifier.fillMaxWidth()
+                    Column(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .padding(16.dp)
                     ) {
-                        SegmentedButton(
-                            selected = uiState.selectedMode == LoginMode.PASSWORD,
-                            onClick = { onModeSelected(LoginMode.PASSWORD) },
-                            shape = SegmentedButtonDefaults.itemShape(index = 0, count = 2)
+                        Text(
+                            text = "Staff Sign In",
+                            style = MaterialTheme.typography.titleLarge,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant
+                        )
+                        Text(
+                            text = "Sign in to access emergency operations",
+                            style = MaterialTheme.typography.bodyMedium,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.8f)
+                        )
+
+                        Spacer(modifier = Modifier.height(16.dp))
+
+                        // Segmented Button Mode Toggle
+                        SingleChoiceSegmentedButtonRow(
+                            modifier = Modifier.fillMaxWidth()
                         ) {
-                            Text("Password")
-                        }
-                        SegmentedButton(
-                            selected = uiState.selectedMode == LoginMode.AUTHENTICATOR,
-                            onClick = { onModeSelected(LoginMode.AUTHENTICATOR) },
-                            shape = SegmentedButtonDefaults.itemShape(index = 1, count = 2)
-                        ) {
-                            Text("Authenticator")
-                        }
-                    }
-
-                    Spacer(modifier = Modifier.height(20.dp))
-
-                    if (!uiState.errorMessage.isNullOrBlank()) {
-                        Card(
-                            colors = CardDefaults.cardColors(
-                                containerColor = MaterialTheme.colorScheme.errorContainer,
-                                contentColor = MaterialTheme.colorScheme.onErrorContainer
-                            ),
-                            modifier = Modifier
-                                .fillMaxWidth()
-                                .padding(bottom = 16.dp)
-                        ) {
-                            Text(
-                                text = uiState.errorMessage,
-                                style = MaterialTheme.typography.bodyMedium,
-                                modifier = Modifier.padding(12.dp)
-                            )
-                        }
-                    }
-
-                    OutlinedTextField(
-                        value = uiState.identifier,
-                        onValueChange = onIdentifierChanged,
-                        label = { Text("Email / Staff Identifier") },
-                        leadingIcon = {
-                            Icon(
-                                imageVector = Icons.Default.Person,
-                                contentDescription = null,
-                                tint = MaterialTheme.colorScheme.primary
-                            )
-                        },
-                        singleLine = true,
-                        keyboardOptions = KeyboardOptions(
-                            keyboardType = KeyboardType.Text,
-                            imeAction = ImeAction.Next
-                        ),
-                        enabled = !uiState.isSubmitting,
-                        modifier = Modifier.fillMaxWidth()
-                    )
-
-                    Spacer(modifier = Modifier.height(16.dp))
-
-                    when (uiState.selectedMode) {
-                        LoginMode.PASSWORD -> {
-                            OutlinedTextField(
-                                value = uiState.password,
-                                onValueChange = onPasswordChanged,
-                                label = { Text("Password") },
-                                leadingIcon = {
-                                    Icon(
-                                        imageVector = Icons.Default.Lock,
-                                        contentDescription = null,
-                                        tint = MaterialTheme.colorScheme.primary
-                                    )
-                                },
-                                singleLine = true,
-                                visualTransformation = if (passwordVisible) VisualTransformation.None else PasswordVisualTransformation(),
-                                trailingIcon = {
-                                    IconButton(onClick = { passwordVisible = !passwordVisible }) {
-                                        Icon(
-                                            imageVector = if (passwordVisible) Icons.Default.VisibilityOff else Icons.Default.Visibility,
-                                            contentDescription = if (passwordVisible) "Hide Password" else "Show Password"
-                                        )
-                                    }
-                                },
-                                keyboardOptions = KeyboardOptions(
-                                    keyboardType = KeyboardType.Password,
-                                    imeAction = ImeAction.Done
-                                ),
-                                keyboardActions = KeyboardActions(
-                                    onDone = { onSubmitPassword() }
-                                ),
-                                enabled = !uiState.isSubmitting,
-                                modifier = Modifier.fillMaxWidth()
-                            )
-
-                            Spacer(modifier = Modifier.height(24.dp))
-
-                            Button(
-                                onClick = onSubmitPassword,
-                                enabled = !uiState.isSubmitting,
-                                shape = RoundedCornerShape(12.dp),
-                                modifier = Modifier
-                                    .fillMaxWidth()
-                                    .height(52.dp)
+                            SegmentedButton(
+                                selected = uiState.selectedMode == LoginMode.PASSWORD,
+                                onClick = { onModeSelected(LoginMode.PASSWORD) },
+                                shape = SegmentedButtonDefaults.itemShape(index = 0, count = 2)
                             ) {
-                                if (uiState.isSubmitting) {
-                                    CircularProgressIndicator(
-                                        color = MaterialTheme.colorScheme.onPrimary,
-                                        strokeWidth = 2.dp,
-                                        modifier = Modifier.size(20.dp).padding(end = 8.dp)
-                                    )
-                                }
-                                Text("Sign In", style = MaterialTheme.typography.labelLarge)
+                                Text("Password")
+                            }
+                            SegmentedButton(
+                                selected = uiState.selectedMode == LoginMode.AUTHENTICATOR,
+                                onClick = { onModeSelected(LoginMode.AUTHENTICATOR) },
+                                shape = SegmentedButtonDefaults.itemShape(index = 1, count = 2)
+                            ) {
+                                Text("Authenticator")
                             }
                         }
 
-                        LoginMode.AUTHENTICATOR -> {
-                            Text(
-                                text = "Enter the 6-digit code from your authenticator app.",
-                                style = MaterialTheme.typography.bodyMedium,
-                                color = MaterialTheme.colorScheme.onSurfaceVariant,
-                                modifier = Modifier.padding(bottom = 16.dp)
-                            )
+                        Spacer(modifier = Modifier.height(20.dp))
 
-                            SixDigitCodeInput(
-                                code = uiState.authenticatorCode,
-                                onCodeChanged = onCodeChanged,
-                                enabled = !uiState.isSubmitting
-                            )
-
-                            Spacer(modifier = Modifier.height(24.dp))
-
-                            Button(
-                                onClick = onSubmitAuthenticator,
-                                enabled = !uiState.isSubmitting && uiState.authenticatorCode.length == 6,
-                                shape = RoundedCornerShape(12.dp),
+                        if (!uiState.errorMessage.isNullOrBlank()) {
+                            Box(
                                 modifier = Modifier
                                     .fillMaxWidth()
-                                    .height(52.dp)
+                                    .clip(RoundedCornerShape(8.dp))
+                                    .background(MaterialTheme.colorScheme.errorContainer)
+                                    .padding(12.dp)
                             ) {
-                                if (uiState.isSubmitting) {
-                                    CircularProgressIndicator(
-                                        color = MaterialTheme.colorScheme.onPrimary,
-                                        strokeWidth = 2.dp,
-                                        modifier = Modifier.size(20.dp).padding(end = 8.dp)
+                                Text(
+                                    text = uiState.errorMessage,
+                                    style = MaterialTheme.typography.bodyMedium,
+                                    color = MaterialTheme.colorScheme.onErrorContainer
+                                )
+                            }
+                            Spacer(modifier = Modifier.height(16.dp))
+                        }
+
+                        when (uiState.selectedMode) {
+                            LoginMode.PASSWORD -> {
+                                OutlinedTextField(
+                                    value = uiState.identifier,
+                                    onValueChange = onIdentifierChanged,
+                                    label = { Text("Email / Staff Identifier") },
+                                    singleLine = true,
+                                    keyboardOptions = KeyboardOptions(
+                                        keyboardType = KeyboardType.Email,
+                                        imeAction = ImeAction.Next
+                                    ),
+                                    keyboardActions = KeyboardActions(
+                                        onNext = { focusManager.moveFocus(FocusDirection.Down) }
+                                    ),
+                                    leadingIcon = {
+                                        Icon(
+                                            imageVector = Icons.Default.Person,
+                                            contentDescription = null
+                                        )
+                                    },
+                                    modifier = Modifier.fillMaxWidth()
+                                )
+
+                                Spacer(modifier = Modifier.height(12.dp))
+
+                                OutlinedTextField(
+                                    value = uiState.password,
+                                    onValueChange = onPasswordChanged,
+                                    label = { Text("Password") },
+                                    singleLine = true,
+                                    visualTransformation = if (isPasswordVisible) VisualTransformation.None else PasswordVisualTransformation(),
+                                    keyboardOptions = KeyboardOptions(
+                                        keyboardType = KeyboardType.Password,
+                                        imeAction = ImeAction.Done
+                                    ),
+                                    keyboardActions = KeyboardActions(
+                                        onDone = {
+                                            focusManager.clearFocus()
+                                            onSubmitPassword()
+                                        }
+                                    ),
+                                    leadingIcon = {
+                                        Icon(
+                                            imageVector = Icons.Default.Lock,
+                                            contentDescription = null
+                                        )
+                                    },
+                                    trailingIcon = {
+                                        IconButton(onClick = { isPasswordVisible = !isPasswordVisible }) {
+                                            Icon(
+                                                imageVector = if (isPasswordVisible) Icons.Default.VisibilityOff else Icons.Default.Visibility,
+                                                contentDescription = "Toggle password visibility"
+                                            )
+                                        }
+                                    },
+                                    modifier = Modifier.fillMaxWidth()
+                                )
+
+                                Spacer(modifier = Modifier.height(24.dp))
+
+                                Button(
+                                    onClick = {
+                                        focusManager.clearFocus()
+                                        onSubmitPassword()
+                                    },
+                                    enabled = !uiState.isSubmitting,
+                                    shape = RoundedCornerShape(12.dp),
+                                    modifier = Modifier
+                                        .fillMaxWidth()
+                                        .height(50.dp)
+                                ) {
+                                    if (uiState.isSubmitting) {
+                                        CircularProgressIndicator(
+                                            color = MaterialTheme.colorScheme.onPrimary,
+                                            strokeWidth = 2.dp,
+                                            modifier = Modifier.size(20.dp).padding(end = 8.dp)
+                                        )
+                                    }
+                                    Text(
+                                        text = "Sign In",
+                                        style = MaterialTheme.typography.titleMedium
                                     )
                                 }
-                                Text("Verify Code", style = MaterialTheme.typography.labelLarge)
+                            }
+
+                            LoginMode.AUTHENTICATOR -> {
+                                OutlinedTextField(
+                                    value = uiState.identifier,
+                                    onValueChange = onIdentifierChanged,
+                                    label = { Text("Email / Staff Identifier") },
+                                    singleLine = true,
+                                    keyboardOptions = KeyboardOptions(
+                                        keyboardType = KeyboardType.Email,
+                                        imeAction = ImeAction.Next
+                                    ),
+                                    leadingIcon = {
+                                        Icon(
+                                            imageVector = Icons.Default.Person,
+                                            contentDescription = null
+                                        )
+                                    },
+                                    modifier = Modifier.fillMaxWidth()
+                                )
+
+                                Spacer(modifier = Modifier.height(16.dp))
+
+                                Text(
+                                    text = "Enter 6-digit Authenticator Code",
+                                    style = MaterialTheme.typography.labelLarge,
+                                    color = MaterialTheme.colorScheme.onSurfaceVariant
+                                )
+
+                                Spacer(modifier = Modifier.height(8.dp))
+
+                                SixDigitCodeInput(
+                                    code = uiState.authenticatorCode,
+                                    onCodeChanged = onCodeChanged,
+                                    modifier = Modifier.fillMaxWidth()
+                                )
+
+                                Spacer(modifier = Modifier.height(24.dp))
+
+                                Button(
+                                    onClick = {
+                                        focusManager.clearFocus()
+                                        onSubmitAuthenticator()
+                                    },
+                                    enabled = !uiState.isSubmitting && uiState.authenticatorCode.length == 6,
+                                    shape = RoundedCornerShape(12.dp),
+                                    modifier = Modifier
+                                        .fillMaxWidth()
+                                        .height(50.dp)
+                                ) {
+                                    if (uiState.isSubmitting) {
+                                        CircularProgressIndicator(
+                                            color = MaterialTheme.colorScheme.onPrimary,
+                                            strokeWidth = 2.dp,
+                                            modifier = Modifier.size(20.dp).padding(end = 8.dp)
+                                        )
+                                    }
+                                    Text(
+                                        text = "Verify Code & Sign In",
+                                        style = MaterialTheme.typography.titleMedium
+                                    )
+                                }
                             }
                         }
                     }
@@ -320,33 +339,28 @@ fun LoginScreen(
 
                 Spacer(modifier = Modifier.height(24.dp))
 
-                // Security Footer
-                Row(
-                    verticalAlignment = Alignment.CenterVertically
-                ) {
+                Row(verticalAlignment = Alignment.CenterVertically) {
                     Icon(
                         imageVector = Icons.Default.Security,
                         contentDescription = null,
-                        tint = MaterialTheme.colorScheme.onSurfaceVariant,
+                        tint = MaterialTheme.colorScheme.onBackground.copy(alpha = 0.6f),
                         modifier = Modifier.size(16.dp)
                     )
                     Spacer(modifier = Modifier.width(6.dp))
                     Text(
                         text = "Authorized Personnel Only",
-                        style = MaterialTheme.typography.labelMedium,
-                        color = MaterialTheme.colorScheme.onSurfaceVariant
+                        style = MaterialTheme.typography.bodySmall,
+                        color = MaterialTheme.colorScheme.onBackground.copy(alpha = 0.6f)
                     )
                 }
 
                 Spacer(modifier = Modifier.height(8.dp))
 
-                if (BuildConfig.DEBUG) {
-                    Text(
-                        text = "${BuildConfig.APPLICATION_ID} • Development",
-                        style = MaterialTheme.typography.labelMedium,
-                        color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.7f)
-                    )
-                }
+                Text(
+                    text = "com.ghanaemergencyconnect.agency • Development",
+                    style = MaterialTheme.typography.labelSmall,
+                    color = MaterialTheme.colorScheme.onBackground.copy(alpha = 0.4f)
+                )
             }
         }
     }
